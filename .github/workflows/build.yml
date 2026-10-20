@@ -23,7 +23,7 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      - name: Compilar FenixTV Cinemático
+      - name: Compilar FenixTV Cinema Edition
         run: |
           mkdir -p app/src/main/java/com/fenixtv/app
           mkdir -p app/src/main/res/drawable
@@ -66,14 +66,14 @@ jobs:
               id 'com.android.application'
           }
           android {
-              namespace 'com.fenixtv.app'
-              compileSdk 34
+              namespace = "com.fenixtv.app"
+              compileSdk = 34
               defaultConfig {
-                  applicationId 'com.fenixtv.app'
+                  applicationId = "com.fenixtv.app"
                   minSdk 26
                   targetSdk 34
-                  versionCode 3
-                  versionName '1.2'
+                  versionCode 4
+                  versionName '2.0'
               }
           }
           EOF
@@ -98,26 +98,20 @@ jobs:
           cat << 'EOF' > app/src/main/java/com/fenixtv/app/MainActivity.java
           package com.fenixtv.app;
 
-          import android.animation.ObjectAnimator;
-          import android.animation.PropertyValuesHolder;
-          import android.animation.ValueAnimator;
           import android.app.Activity;
           import android.graphics.Color;
           import android.graphics.Typeface;
           import android.graphics.drawable.GradientDrawable;
           import android.net.Uri;
           import android.os.Bundle;
-          import android.os.Handler;
-          import android.os.Looper;
           import android.view.Gravity;
           import android.view.View;
           import android.widget.*;
 
           public class MainActivity extends Activity {
               private FrameLayout rootLayout;
-              private LinearLayout mainUILayout;
-              private LinearLayout contentArea;
-              private LinearLayout introLayout;
+              private LinearLayout cinemaDashboard;
+              private TextView heroTitle, heroTags, heroSynopsis, heroRating;
               private VideoView videoPlayer;
               private ProgressBar loadingSpinner;
 
@@ -126,129 +120,132 @@ jobs:
                   super.onCreate(savedInstanceState);
 
                   rootLayout = new FrameLayout(this);
-                  rootLayout.setBackgroundColor(Color.parseColor("#08080A"));
+                  rootLayout.setBackgroundColor(Color.parseColor("#060608"));
 
-                  configurarIntroLlamas();
-                  configurarInterfazPrincipal();
+                  cinemaDashboard = new LinearLayout(this);
+                  cinemaDashboard.setOrientation(LinearLayout.VERTICAL);
 
-                  setContentView(rootLayout);
+                  // 1. Barra Superior con Logo Fénix y Reloj/Estado
+                  LinearLayout topBar = new LinearLayout(this);
+                  topBar.setOrientation(LinearLayout.HORIZONTAL);
+                  topBar.setGravity(Gravity.CENTER_VERTICAL);
+                  topBar.setPadding(40, 20, 40, 10);
 
-                  // La intro dura 2.8 segundos y luego transiciona suavemente a la app
-                  new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                      introLayout.animate().alpha(0f).setDuration(600).withEndAction(() -> {
-                          introLayout.setVisibility(View.GONE);
-                          mainUILayout.setVisibility(View.VISIBLE);
-                          mainUILayout.setAlpha(0f);
-                          mainUILayout.animate().alpha(1f).setDuration(500).start();
-                      }).start();
-                  }, 2800);
-              }
-
-              private void configurarIntroLlamas() {
-                  introLayout = new LinearLayout(this);
-                  introLayout.setOrientation(LinearLayout.VERTICAL);
-                  introLayout.setGravity(Gravity.CENTER);
-                  introLayout.setLayoutParams(new FrameLayout.LayoutParams(
-                      FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-                  introLayout.setBackgroundColor(Color.parseColor("#050507"));
-
-                  ImageView introLogo = new ImageView(this);
+                  ImageView logo = new ImageView(this);
                   int id = getResources().getIdentifier("fenix_logo", "drawable", getPackageName());
-                  if (id != 0) introLogo.setImageResource(id);
-                  introLogo.setLayoutParams(new LinearLayout.LayoutParams(500, 280));
+                  if (id != 0) logo.setImageResource(id);
+                  logo.setLayoutParams(new LinearLayout.LayoutParams(160, 65));
+                  topBar.addView(logo);
 
-                  // Efecto de latido y llamas sobre el fénix
-                  ObjectAnimator pulse = ObjectAnimator.ofPropertyValuesHolder(
-                      introLogo,
-                      PropertyValuesHolder.ofFloat("scaleX", 1.0f, 1.14f, 1.0f),
-                      PropertyValuesHolder.ofFloat("scaleY", 1.0f, 1.14f, 1.0f)
+                  TextView liveBadge = new TextView(this);
+                  liveBadge.setText("  ● ULTRA STREAMING 4K  ");
+                  liveBadge.setTextColor(Color.parseColor("#00FF88"));
+                  liveBadge.setTextSize(12);
+                  liveBadge.setTypeface(Typeface.DEFAULT_BOLD);
+                  topBar.addView(liveBadge);
+
+                  cinemaDashboard.addView(topBar);
+
+                  // 2. HERO BANNER CINEMATOGRÁFICO GIGANTE
+                  LinearLayout heroBanner = new LinearLayout(this);
+                  heroBanner.setOrientation(LinearLayout.VERTICAL);
+                  heroBanner.setPadding(50, 15, 50, 20);
+
+                  GradientDrawable heroBg = new GradientDrawable(
+                      GradientDrawable.Orientation.LEFT_RIGHT,
+                      new int[]{Color.parseColor("#220709"), Color.parseColor("#0F0F14")}
                   );
-                  pulse.setDuration(1200);
-                  pulse.setRepeatCount(ValueAnimator.INFINITE);
-                  pulse.start();
-                  introLayout.addView(introLogo);
+                  heroBg.setCornerRadius(16);
+                  heroBanner.setBackground(heroBg);
 
-                  TextView fuegoTxt = new TextView(this);
-                  fuegoTxt.setText("FENIXTV STREAMING");
-                  fuegoTxt.setTextSize(34);
-                  fuegoTxt.setTypeface(Typeface.DEFAULT_BOLD);
-                  fuegoTxt.setTextColor(Color.parseColor("#FF2233"));
-                  // Efecto resplandor de fuego en las letras (Neon Glow)
-                  fuegoTxt.setShadowLayer(30, 0, 0, Color.parseColor("#FFAA00"));
-                  fuegoTxt.setGravity(Gravity.CENTER);
-                  fuegoTxt.setPadding(0, 20, 0, 0);
-                  introLayout.addView(fuegoTxt);
+                  heroTitle = new TextView(this);
+                  heroTitle.setText("FENIX ORIGINS: EL RENACER DEL CINE");
+                  heroTitle.setTextSize(26);
+                  heroTitle.setTypeface(Typeface.DEFAULT_BOLD);
+                  heroTitle.setTextColor(Color.WHITE);
+                  heroTitle.setShadowLayer(25, 0, 0, Color.parseColor("#FF1A26"));
+                  heroBanner.addView(heroTitle);
 
-                  TextView sub = new TextView(this);
-                  sub.setText("• RENACIENDO EL ENTRETENIMIENTO •");
-                  sub.setTextSize(14);
-                  sub.setTextColor(Color.parseColor("#FF7700"));
-                  sub.setShadowLayer(15, 0, 0, Color.parseColor("#FF1A26"));
-                  sub.setGravity(Gravity.CENTER);
-                  sub.setPadding(0, 10, 0, 0);
-                  introLayout.addView(sub);
+                  LinearLayout badgesRow = new LinearLayout(this);
+                  badgesRow.setOrientation(LinearLayout.HORIZONTAL);
+                  badgesRow.setPadding(0, 8, 0, 8);
 
-                  rootLayout.addView(introLayout);
-              }
+                  heroRating = new TextView(this);
+                  heroRating.setText("★★★★★ 9.8  |  ");
+                  heroRating.setTextColor(Color.parseColor("#FFAA00"));
+                  heroRating.setTextSize(13);
+                  badgesRow.addView(heroRating);
 
-              private void configurarInterfazPrincipal() {
-                  mainUILayout = new LinearLayout(this);
-                  mainUILayout.setOrientation(LinearLayout.HORIZONTAL);
-                  mainUILayout.setVisibility(View.GONE);
+                  heroTags = new TextView(this);
+                  heroTags.setText("ESTRENO 2024  •  4K ULTRA HD  •  DOLBY ATMOS  •  AUDIO LATINO");
+                  heroTags.setTextColor(Color.parseColor("#FF3344"));
+                  heroTags.setTextSize(13);
+                  heroTags.setTypeface(Typeface.DEFAULT_BOLD);
+                  badgesRow.addView(heroTags);
+                  heroBanner.addView(badgesRow);
 
-                  // Barra lateral con menu
-                  LinearLayout sideBar = new LinearLayout(this);
-                  sideBar.setOrientation(LinearLayout.VERTICAL);
-                  sideBar.setBackgroundColor(Color.parseColor("#101014"));
-                  sideBar.setLayoutParams(new LinearLayout.LayoutParams(420, LinearLayout.LayoutParams.MATCH_PARENT));
-                  sideBar.setPadding(35, 25, 35, 25);
-                  sideBar.setGravity(Gravity.CENTER_HORIZONTAL);
+                  heroSynopsis = new TextView(this);
+                  heroSynopsis.setText("Selecciona cualquier película, canal o serie con tu control remoto para reproducir inmediatamente.");
+                  heroSynopsis.setTextColor(Color.parseColor("#C0C0CC"));
+                  heroSynopsis.setTextSize(14);
+                  heroSynopsis.setMaxLines(2);
+                  heroBanner.addView(heroSynopsis);
 
-                  ImageView menuLogo = new ImageView(this);
-                  int id = getResources().getIdentifier("fenix_logo", "drawable", getPackageName());
-                  if (id != 0) menuLogo.setImageResource(id);
-                  menuLogo.setLayoutParams(new LinearLayout.LayoutParams(340, 150));
-                  sideBar.addView(menuLogo);
+                  cinemaDashboard.addView(heroBanner);
 
-                  TextView logoTitle = new TextView(this);
-                  logoTitle.setText("FENIXTV");
-                  logoTitle.setTextColor(Color.parseColor("#FF1A26"));
-                  logoTitle.setTextSize(20);
-                  logoTitle.setTypeface(Typeface.DEFAULT_BOLD);
-                  logoTitle.setShadowLayer(18, 0, 0, Color.parseColor("#FF1A26"));
-                  logoTitle.setGravity(Gravity.CENTER);
-                  sideBar.addView(logoTitle);
-
-                  View div = new View(this);
-                  div.setBackgroundColor(Color.parseColor("#331115"));
-                  LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 3);
-                  divParams.setMargins(0, 15, 0, 20);
-                  div.setLayoutParams(divParams);
-                  sideBar.addView(div);
-
-                  // Botones interactivos con animación dinámica
-                  sideBar.addView(crearBotonMenu("📺 CANALES EN VIVO", v -> mostrarCanales()));
-                  sideBar.addView(crearBotonMenu("🎬 PELÍCULAS", v -> mostrarPeliculas()));
-                  sideBar.addView(crearBotonMenu("🍿 SERIES Y SAGAS", v -> mostrarSeries()));
-                  sideBar.addView(crearBotonMenu("💳 PLANES ($15 / $20)", v -> mostrarPlanes()));
-                  sideBar.addView(crearBotonMenu("🛠️ SOPORTE TÉCNICO", v -> mostrarSoporte()));
-
-                  mainUILayout.addView(sideBar);
-
-                  // Zona de contenido (derecha con scroll para muchas películas)
-                  ScrollView scroll = new ScrollView(this);
-                  scroll.setLayoutParams(new LinearLayout.LayoutParams(
+                  // 3. SECCIONES HORIZONTALES (ESTILO NETFLIX CAROUSEL)
+                  ScrollView mainScroll = new ScrollView(this);
+                  mainScroll.setLayoutParams(new LinearLayout.LayoutParams(
                       LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
 
-                  contentArea = new LinearLayout(this);
-                  contentArea.setOrientation(LinearLayout.VERTICAL);
-                  contentArea.setPadding(40, 30, 40, 30);
-                  scroll.addView(contentArea);
+                  LinearLayout carouselsArea = new LinearLayout(this);
+                  carouselsArea.setOrientation(LinearLayout.VERTICAL);
+                  carouselsArea.setPadding(40, 20, 40, 40);
 
-                  mainUILayout.addView(scroll);
-                  rootLayout.addView(mainUILayout);
+                  // FILA 1: PELÍCULAS DE ESTRENO
+                  carouselsArea.addView(crearTituloFila("🔥 ESTRENOS Y PELÍCULAS DE CINE TOP 10"));
+                  HorizontalScrollView moviesScroll = new HorizontalScrollView(this);
+                  LinearLayout moviesRow = new LinearLayout(this);
+                  moviesRow.setOrientation(LinearLayout.HORIZONTAL);
 
-                  // Reproductor de video
+                  moviesRow.addView(crearPosterCine("Fénix Origins 4K", "Acción / Sci-Fi", "★★★★★ 9.8", "La misión secreta para salvar el futuro de la humanidad.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", "#8A0B13"));
+                  moviesRow.addView(crearPosterCine("Bosque Salvaje", "Animación Familiar", "★★★★☆ 9.2", "Una aventura épica a través de criaturas fantásticas.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", "#1E3A5F"));
+                  moviesRow.addView(crearPosterCine("Cacería Nocturna", "Suspenso / Thriller", "★★★★★ 9.6", "Persecución sin tregua en el corazón de la metrópoli.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", "#2D1B4E"));
+                  moviesRow.addView(crearPosterCine("Dragón de Hierro", "Artes Marciales", "★★★★☆ 8.9", "Honor, venganza y la mayor batalla de artes marciales.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", "#592E0B"));
+
+                  moviesScroll.addView(moviesRow);
+                  carouselsArea.addView(moviesScroll);
+
+                  // FILA 2: CANALES DE TV EN VIVO
+                  carouselsArea.addView(crearTituloFila("📺 TELEVISIÓN EN DIRECTO [🔴 EN VIVO 24/7]"));
+                  HorizontalScrollView liveScroll = new HorizontalScrollView(this);
+                  LinearLayout liveRow = new LinearLayout(this);
+                  liveRow.setOrientation(LinearLayout.HORIZONTAL);
+
+                  liveRow.addView(crearPosterCanal("FÉNIX DEPORTES HD", "Fútbol Internacional & Champions en Directo", "EN VIVO", "Transmisión oficial del canal deportivo estelar.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"));
+                  liveRow.addView(crearPosterCanal("NOTICIAS MUNDIAL HLS", "Transmisión de Noticias Satelital Continua", "SEÑAL VIVO", "Conexión de noticias globales en tiempo real.", "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"));
+                  liveRow.addView(crearPosterCanal("CINE CABLE GOLD", "Películas de Hollywood 24 Horas sin Pausa", "ESTELAR", "La señal premium de películas clásicas y taquilleras.", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
+
+                  liveScroll.addView(liveRow);
+                  carouselsArea.addView(liveScroll);
+
+                  // FILA 3: PLANES DE ACCESO VIP
+                  carouselsArea.addView(crearTituloFila("💎 MEMBRESÍAS FENIXTV VIP"));
+                  HorizontalScrollView plansScroll = new HorizontalScrollView(this);
+                  LinearLayout plansRow = new LinearLayout(this);
+                  plansRow.setOrientation(LinearLayout.HORIZONTAL);
+
+                  plansRow.addView(crearTarjetaMembresia("PLAN BÁSICO DIGITAL", "$15 / Mes", "• 1 Dispositivo en simultáneo\n• Calidad Full HD 1080p\n• Cine y Canales en Vivo"));
+                  plansRow.addView(crearTarjetaMembresia("PLAN PREMIUM ULTRA 4K", "$20 / Mes", "• Hasta 3 Dispositivos a la vez\n• Calidad Ultra HD 4K + HDR\n• Catálogo Completo VIP\n• Soporte Prioritario 24/7"));
+
+                  plansScroll.addView(plansRow);
+                  carouselsArea.addView(plansScroll);
+
+                  mainScroll.addView(carouselsArea);
+                  cinemaDashboard.addView(mainScroll);
+                  rootLayout.addView(cinemaDashboard);
+
+                  // 4. REPRODUCTOR DE CINE
                   videoPlayer = new VideoView(this);
                   videoPlayer.setLayoutParams(new FrameLayout.LayoutParams(
                       FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -256,216 +253,201 @@ jobs:
                   rootLayout.addView(videoPlayer);
 
                   loadingSpinner = new ProgressBar(this);
-                  FrameLayout.LayoutParams sp = new FrameLayout.LayoutParams(130, 130);
-                  sp.gravity = Gravity.CENTER;
-                  loadingSpinner.setLayoutParams(sp);
+                  FrameLayout.LayoutParams lpSp = new FrameLayout.LayoutParams(130, 130);
+                  lpSp.gravity = Gravity.CENTER;
+                  loadingSpinner.setLayoutParams(lpSp);
                   loadingSpinner.setVisibility(View.GONE);
                   rootLayout.addView(loadingSpinner);
 
-                  mostrarCanales();
+                  setContentView(rootLayout);
               }
 
-              private Button crearBotonMenu(String texto, View.OnClickListener click) {
-                  Button btn = new Button(this);
-                  btn.setText(texto);
-                  btn.setTextSize(14);
-                  btn.setTypeface(Typeface.DEFAULT_BOLD);
-                  btn.setTextColor(Color.parseColor("#E0E0E6"));
-                  btn.setFocusable(true);
-                  btn.setFocusableInTouchMode(true);
-                  btn.setOnClickListener(click);
-
-                  GradientDrawable bgNormal = new GradientDrawable();
-                  bgNormal.setColor(Color.parseColor("#181820"));
-                  bgNormal.setCornerRadius(12);
-
-                  GradientDrawable bgFocus = new GradientDrawable();
-                  bgFocus.setColor(Color.parseColor("#B30A14"));
-                  bgFocus.setStroke(3, Color.parseColor("#FF2A36"));
-                  bgFocus.setCornerRadius(12);
-
-                  btn.setBackground(bgNormal);
-                  btn.setOnFocusChangeListener((v, hasFocus) -> {
-                      btn.setBackground(hasFocus ? bgFocus : bgNormal);
-                      btn.animate().scaleX(hasFocus ? 1.06f : 1.0f).scaleY(hasFocus ? 1.06f : 1.0f).setDuration(150).start();
-                      if (hasFocus) {
-                          btn.setTextColor(Color.WHITE);
-                          btn.setShadowLayer(15, 0, 0, Color.parseColor("#FFAA00"));
-                      } else {
-                          btn.setTextColor(Color.parseColor("#E0E0E6"));
-                          btn.setShadowLayer(0, 0, 0, Color.TRANSPARENT);
-                      }
-                  });
-
-                  LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                  p.setMargins(0, 12, 0, 0);
-                  btn.setLayoutParams(p);
-                  return btn;
-              }
-
-              private void mostrarCanales() {
-                  contentArea.removeAllViews();
-                  agregarEncabezado("📺 CANALES EN VIVO", "Señales premium con transmisión continua en alta definición");
-
-                  contentArea.addView(crearTarjetaContenido("🔥 CANAL FÉNIX DEPORTES 24/7", "Fútbol Internacional, Liga y Eventos en Directo • [4K UHD]", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"));
-                  contentArea.addView(crearTarjetaContenido("⚡ CANAL NOTICIAS & MUNDO", "Transmisión en directo continua de baja latencia • [EN VIVO HLS]", "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"));
-                  contentArea.addView(crearTarjetaContenido("🎸 FÉNIX MUSIC & SHOWS", "Conciertos, festivales y lo mejor de la música latina • [HD]", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
-              }
-
-              private void mostrarPeliculas() {
-                  contentArea.removeAllViews();
-                  agregarEncabezado("🎬 PELÍCULAS A LA CARTA", "Estrenos de cine, acción y aventuras bajo demanda");
-
-                  contentArea.addView(crearTarjetaContenido("🍿 Fénix Origins: El Gran Rescate (2024)", "Acción / Ciencia Ficción • 1h 48m • 4K HDR • Audio Latino 5.1", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"));
-                  contentArea.addView(crearTarjetaContenido("🐰 Big Adventure: Bosque Prohibido", "Animación Familiar • 1h 25m • Full HD • Ganadora Mejor Animación", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
-                  contentArea.addView(crearTarjetaContenido("⚔️ Reino de Titanes: Batalla Final", "Fantasía Épica / Aventura • 2h 15m • Ultra HD • Exclusiva FenixTV", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"));
-              }
-
-              private void mostrarSeries() {
-                  contentArea.removeAllViews();
-                  agregarEncabezado("🍿 SERIES Y TEMPORADAS", "Maratonea las mejores sagas completas capítulo a capítulo");
-
-                  contentArea.addView(crearTarjetaContenido("🔥 Fénix Chronicles - Temporada 1", "Capítulo 1: El Despertar del Fénix • 50 min • [4K]", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"));
-                  contentArea.addView(crearTarjetaContenido("🔥 Fénix Chronicles - Temporada 1", "Capítulo 2: Ciudad de Sombras • 55 min • [4K]", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
-                  contentArea.addView(crearTarjetaContenido("🐉 La Leyenda del Dragón Plateado", "Episodio Piloto: Vuelo Cósmico • 48 min • Fantasía", "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"));
-              }
-
-              private void mostrarPlanes() {
-                  contentArea.removeAllViews();
-                  agregarEncabezado("💳 PLANES DE SUSCRIPCIÓN", "Disfruta FenixTV en todos tus dispositivos autorizados");
-
-                  contentArea.addView(crearTarjetaPlan("⭐ PLAN BÁSICO FÉNIX - $15 / MES", 
-                      "• 1 Pantalla en simultáneo\n• Calidad Full HD 1080p\n• Canales en vivo y películas bajo demanda\n• Activación inmediata"));
-
-                  contentArea.addView(crearTarjetaPlan("👑 PLAN PREMIUM FÉNIX - $20 / MES (MÁS POPULAR)", 
-                      "• Hasta 3 Pantallas en simultáneo\n• Máxima calidad Ultra HD 4K + Sonido 5.1\n• Todas las series completas, eventos y estrenos\n• Soporte técnico prioritario 24/7"));
-              }
-
-              private void mostrarSoporte() {
-                  contentArea.removeAllViews();
-                  agregarEncabezado("🛠️ ATENCIÓN Y SOPORTE", "Estamos listos para ayudarte con tu cuenta o instalación");
-
-                  contentArea.addView(crearTarjetaPlan("CANALES DE ATENCIÓN", 
-                      "• Soporte por WhatsApp y Telegram\n• Activaciones de cuentas y códigos de clientes\n• FenixTV App Oficial v1.2"));
-              }
-
-              private void agregarEncabezado(String titulo, String subtitulo) {
+              private TextView crearTituloFila(String texto) {
                   TextView t = new TextView(this);
-                  t.setText(titulo);
-                  t.setTextSize(24);
+                  t.setText(texto);
+                  t.setTextSize(16);
                   t.setTypeface(Typeface.DEFAULT_BOLD);
-                  t.setTextColor(Color.parseColor("#FF1A26"));
-                  t.setShadowLayer(22, 0, 0, Color.parseColor("#FF4400"));
-                  contentArea.addView(t);
-
-                  TextView s = new TextView(this);
-                  s.setText(subtitulo);
-                  s.setTextSize(14);
-                  s.setTextColor(Color.parseColor("#A8A8B2"));
-                  s.setPadding(0, 4, 0, 20);
-                  contentArea.addView(s);
+                  t.setTextColor(Color.parseColor("#FF2A36"));
+                  t.setShadowLayer(14, 0, 0, Color.parseColor("#FF0011"));
+                  t.setPadding(0, 20, 0, 10);
+                  return t;
               }
 
-              private View crearTarjetaContenido(String titulo, String desc, String urlVideo) {
+              private View crearPosterCine(String titulo, String genero, String estrellas, String sinopsis, String url, String colorHex) {
                   LinearLayout card = new LinearLayout(this);
                   card.setOrientation(LinearLayout.VERTICAL);
-                  card.setPadding(35, 22, 35, 22);
+                  card.setPadding(20, 20, 20, 20);
+                  card.setGravity(Gravity.BOTTOM);
                   card.setFocusable(true);
                   card.setFocusableInTouchMode(true);
 
-                  GradientDrawable normal = new GradientDrawable();
-                  normal.setColor(Color.parseColor("#15151D"));
-                  normal.setStroke(2, Color.parseColor("#282834"));
-                  normal.setCornerRadius(14);
+                  GradientDrawable normalBg = new GradientDrawable(
+                      GradientDrawable.Orientation.TOP_BOTTOM,
+                      new int[]{Color.parseColor(colorHex), Color.parseColor("#0B0B10")}
+                  );
+                  normalBg.setCornerRadius(14);
+                  normalBg.setStroke(2, Color.parseColor("#252530"));
 
-                  GradientDrawable focus = new GradientDrawable();
-                  focus.setColor(Color.parseColor("#990B13"));
-                  focus.setStroke(3, Color.parseColor("#FF3344"));
-                  focus.setCornerRadius(14);
+                  GradientDrawable focusBg = new GradientDrawable(
+                      GradientDrawable.Orientation.TOP_BOTTOM,
+                      new int[]{Color.parseColor("#B00B16"), Color.parseColor("#150305")}
+                  );
+                  focusBg.setCornerRadius(14);
+                  focusBg.setStroke(4, Color.parseColor("#FF1A26"));
 
-                  card.setBackground(normal);
+                  card.setBackground(normalBg);
+
+                  TextView tag = new TextView(this);
+                  tag.setText("★ 4K HDR");
+                  tag.setTextColor(Color.parseColor("#FFAA00"));
+                  tag.setTextSize(10);
+                  tag.setTypeface(Typeface.DEFAULT_BOLD);
+                  card.addView(tag);
 
                   TextView t = new TextView(this);
                   t.setText(titulo);
-                  t.setTextSize(17);
+                  t.setTextSize(16);
+                  t.setTypeface(Typeface.DEFAULT_BOLD);
+                  t.setTextColor(Color.WHITE);
+                  card.addView(t);
+
+                  TextView g = new TextView(this);
+                  g.setText(genero);
+                  g.setTextSize(11);
+                  g.setTextColor(Color.parseColor("#A0A0B0"));
+                  card.addView(g);
+
+                  card.setOnFocusChangeListener((v, hasFocus) -> {
+                      card.setBackground(hasFocus ? focusBg : normalBg);
+                      card.animate().scaleX(hasFocus ? 1.10f : 1.0f).scaleY(hasFocus ? 1.10f : 1.0f).setDuration(160).start();
+                      if (hasFocus) {
+                          heroTitle.setText(titulo.toUpperCase());
+                          heroRating.setText(estrellas + "  |  ");
+                          heroTags.setText(genero.toUpperCase() + "  •  4K ULTRA HD  •  FENIX CINEMA");
+                          heroSynopsis.setText(sinopsis);
+                      }
+                  });
+
+                  card.setOnClickListener(v -> reproducir(url));
+
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(220, 290);
+                  lp.setMargins(10, 8, 20, 15);
+                  card.setLayoutParams(lp);
+                  return card;
+              }
+
+              private View crearPosterCanal(String nombre, String detalle, String badge, String sinopsis, String url) {
+                  LinearLayout card = new LinearLayout(this);
+                  card.setOrientation(LinearLayout.VERTICAL);
+                  card.setPadding(22, 18, 22, 18);
+                  card.setGravity(Gravity.CENTER_VERTICAL);
+                  card.setFocusable(true);
+                  card.setFocusableInTouchMode(true);
+
+                  GradientDrawable normalBg = new GradientDrawable();
+                  normalBg.setColor(Color.parseColor("#12121A"));
+                  normalBg.setCornerRadius(12);
+                  normalBg.setStroke(2, Color.parseColor("#222230"));
+
+                  GradientDrawable focusBg = new GradientDrawable();
+                  focusBg.setColor(Color.parseColor("#80070E"));
+                  focusBg.setCornerRadius(12);
+                  focusBg.setStroke(4, Color.parseColor("#FF2233"));
+
+                  card.setBackground(normalBg);
+
+                  TextView live = new TextView(this);
+                  live.setText("● " + badge);
+                  live.setTextColor(Color.parseColor("#FF2A36"));
+                  live.setTextSize(11);
+                  live.setTypeface(Typeface.DEFAULT_BOLD);
+                  card.addView(live);
+
+                  TextView t = new TextView(this);
+                  t.setText(nombre);
+                  t.setTextSize(16);
                   t.setTypeface(Typeface.DEFAULT_BOLD);
                   t.setTextColor(Color.WHITE);
                   card.addView(t);
 
                   TextView d = new TextView(this);
-                  d.setText(desc);
-                  d.setTextSize(13);
-                  d.setTextColor(Color.parseColor("#D0D0DA"));
-                  d.setPadding(0, 6, 0, 0);
+                  d.setText(detalle);
+                  d.setTextSize(11);
+                  d.setTextColor(Color.parseColor("#9090A0"));
                   card.addView(d);
 
                   card.setOnFocusChangeListener((v, hasFocus) -> {
-                      card.setBackground(hasFocus ? focus : normal);
-                      card.animate().scaleX(hasFocus ? 1.03f : 1.0f).scaleY(hasFocus ? 1.03f : 1.0f).setDuration(150).start();
+                      card.setBackground(hasFocus ? focusBg : normalBg);
+                      card.animate().scaleX(hasFocus ? 1.08f : 1.0f).scaleY(hasFocus ? 1.08f : 1.0f).setDuration(160).start();
                       if (hasFocus) {
-                          t.setShadowLayer(15, 0, 0, Color.parseColor("#FFAA00"));
-                      } else {
-                          t.setShadowLayer(0, 0, 0, Color.TRANSPARENT);
+                          heroTitle.setText(nombre.toUpperCase());
+                          heroRating.setText("★★★★★ 9.9 EN VIVO  |  ");
+                          heroTags.setText("TRANSMISIÓN DIGITAL EN DIRECTO  •  60 FPS  •  LATENCIA CERO");
+                          heroSynopsis.setText(sinopsis);
                       }
                   });
 
-                  card.setOnClickListener(v -> reproducirVideo(urlVideo));
+                  card.setOnClickListener(v -> reproducir(url));
 
-                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                  lp.setMargins(0, 10, 0, 10);
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(340, 150);
+                  lp.setMargins(10, 8, 20, 15);
                   card.setLayoutParams(lp);
                   return card;
               }
 
-              private View crearTarjetaPlan(String titulo, String info) {
+              private View crearTarjetaMembresia(String nombre, String precio, String benef) {
                   LinearLayout card = new LinearLayout(this);
                   card.setOrientation(LinearLayout.VERTICAL);
-                  card.setPadding(35, 24, 35, 24);
+                  card.setPadding(26, 20, 26, 20);
                   card.setFocusable(true);
                   card.setFocusableInTouchMode(true);
 
-                  GradientDrawable normal = new GradientDrawable();
-                  normal.setColor(Color.parseColor("#14141A"));
-                  normal.setStroke(2, Color.parseColor("#38151A"));
-                  normal.setCornerRadius(14);
+                  GradientDrawable bg = new GradientDrawable();
+                  bg.setColor(Color.parseColor("#151218"));
+                  bg.setCornerRadius(14);
+                  bg.setStroke(2, Color.parseColor("#441820"));
 
-                  GradientDrawable focus = new GradientDrawable();
-                  focus.setColor(Color.parseColor("#7A080E"));
-                  focus.setStroke(3, Color.parseColor("#FF2233"));
-                  focus.setCornerRadius(14);
+                  GradientDrawable bgFocus = new GradientDrawable();
+                  bgFocus.setColor(Color.parseColor("#660A10"));
+                  bgFocus.setCornerRadius(14);
+                  bgFocus.setStroke(3, Color.parseColor("#FFAA00"));
 
-                  card.setBackground(normal);
+                  card.setBackground(bg);
 
                   TextView t = new TextView(this);
-                  t.setText(titulo);
-                  t.setTextSize(18);
+                  t.setText(nombre);
+                  t.setTextColor(Color.parseColor("#FFAA00"));
+                  t.setTextSize(14);
                   t.setTypeface(Typeface.DEFAULT_BOLD);
-                  t.setTextColor(Color.parseColor("#FF3344"));
                   card.addView(t);
 
-                  TextView d = new TextView(this);
-                  d.setText(info);
-                  d.setTextSize(14);
-                  d.setTextColor(Color.WHITE);
-                  d.setPadding(0, 12, 0, 0);
-                  card.addView(d);
+                  TextView p = new TextView(this);
+                  p.setText(precio);
+                  p.setTextColor(Color.WHITE);
+                  p.setTextSize(24);
+                  p.setTypeface(Typeface.DEFAULT_BOLD);
+                  card.addView(p);
+
+                  TextView b = new TextView(this);
+                  b.setText(benef);
+                  b.setTextColor(Color.parseColor("#D0D0E0"));
+                  b.setTextSize(12);
+                  b.setPadding(0, 8, 0, 0);
+                  card.addView(b);
 
                   card.setOnFocusChangeListener((v, hasFocus) -> {
-                      card.setBackground(hasFocus ? focus : normal);
-                      card.animate().scaleX(hasFocus ? 1.02f : 1.0f).scaleY(hasFocus ? 1.02f : 1.0f).setDuration(150).start();
+                      card.setBackground(hasFocus ? bgFocus : bg);
+                      card.animate().scaleX(hasFocus ? 1.06f : 1.0f).scaleY(hasFocus ? 1.06f : 1.0f).setDuration(160).start();
                   });
 
-                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                  lp.setMargins(0, 12, 0, 12);
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(380, 210);
+                  lp.setMargins(10, 8, 20, 15);
                   card.setLayoutParams(lp);
                   return card;
               }
 
-              private void reproducirVideo(String url) {
-                  mainUILayout.setVisibility(View.GONE);
+              private void reproducir(String url) {
+                  cinemaDashboard.setVisibility(View.GONE);
                   videoPlayer.setVisibility(View.VISIBLE);
                   loadingSpinner.setVisibility(View.VISIBLE);
 
@@ -474,26 +456,26 @@ jobs:
                       loadingSpinner.setVisibility(View.GONE);
                       videoPlayer.start();
                   });
-                  videoPlayer.setOnCompletionListener(mp -> cerrarReproductor());
+                  videoPlayer.setOnCompletionListener(mp -> cerrarVideo());
                   videoPlayer.setOnErrorListener((mp, what, extra) -> {
                       loadingSpinner.setVisibility(View.GONE);
-                      Toast.makeText(MainActivity.this, "Error conectando con la transmisión.", Toast.LENGTH_SHORT).show();
-                      cerrarReproductor();
+                      Toast.makeText(MainActivity.this, "Error conectando con la señal.", Toast.LENGTH_SHORT).show();
+                      cerrarVideo();
                       return true;
                   });
               }
 
-              private void cerrarReproductor() {
+              private void cerrarVideo() {
                   if (videoPlayer.isPlaying()) videoPlayer.stopPlayback();
                   videoPlayer.setVisibility(View.GONE);
                   loadingSpinner.setVisibility(View.GONE);
-                  mainUILayout.setVisibility(View.VISIBLE);
+                  cinemaDashboard.setVisibility(View.VISIBLE);
               }
 
               @Override
               public void onBackPressed() {
                   if (videoPlayer.getVisibility() == View.VISIBLE) {
-                      cerrarReproductor();
+                      cerrarVideo();
                   } else {
                       super.onBackPressed();
                   }
@@ -503,8 +485,8 @@ jobs:
 
           gradle assembleDebug
 
-      - name: Subir instalador APK
+      - name: Subir instalador APK Cinema Edition
         uses: actions/upload-artifact@v4
         with:
-          name: FenixTV-Instalador
+          name: FenixTV-CinemaEdition
           path: app/build/outputs/apk/debug/*.apk
