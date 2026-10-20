@@ -23,26 +23,48 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      - name: Armar aplicacion FenixTV
+      - name: Crear aplicacion FenixTV
         run: |
           mkdir -p app/src/main/java/com/fenixtv/app
           mkdir -p app/src/main/res/drawable
 
+          # Copiar el logo con su formato correcto
           IMG=$(find . -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) | head -n 1)
           if [ -n "$IMG" ]; then
-            cp "$IMG" app/src/main/res/drawable/fenix_logo.png
+            EXT="${IMG##*.}"
+            EXT=$(echo "$EXT" | tr '[:upper:]' '[:lower:]')
+            if [ "$EXT" = "jpeg" ]; then EXT="jpg"; fi
+            cp "$IMG" "app/src/main/res/drawable/fenix_logo.$EXT"
           fi
 
+          # 1. Configurar repositorios de Google
           cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "FenixTV"
           include ':app'
           EOF
 
+          # 2. Configurar build.gradle raiz
           cat << 'EOF' > build.gradle
           plugins {
               id 'com.android.application' version '8.2.2' apply false
           }
           EOF
 
+          # 3. Configurar app/build.gradle
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -60,6 +82,7 @@ jobs:
           }
           EOF
 
+          # 4. Manifiesto para Android TV
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -77,6 +100,7 @@ jobs:
           </manifest>
           EOF
 
+          # 5. Codigo de la pantalla principal FenixTV
           cat << 'EOF' > app/src/main/java/com/fenixtv/app/MainActivity.java
           package com.fenixtv.app;
           import android.app.Activity;
@@ -97,7 +121,7 @@ jobs:
                   ImageView logo = new ImageView(this);
                   int id = getResources().getIdentifier("fenix_logo", "drawable", getPackageName());
                   if (id != 0) logo.setImageResource(id);
-                  logo.setLayoutParams(new LinearLayout.LayoutParams(500, 300));
+                  logo.setLayoutParams(new LinearLayout.LayoutParams(550, 320));
                   layout.addView(logo);
 
                   TextView title = new TextView(this);
@@ -108,7 +132,7 @@ jobs:
                   layout.addView(title);
 
                   TextView plans = new TextView(this);
-                  plans.setText("Planes: Basico $15 / mes  |  Premium $20 / mes");
+                  plans.setText("Planes: Basico $15 / mes  |  Premium $20 / mes\nStreaming en Vivo & Video");
                   plans.setTextSize(18);
                   plans.setTextColor(Color.WHITE);
                   plans.setGravity(Gravity.CENTER);
@@ -120,10 +144,10 @@ jobs:
           }
           EOF
 
-          gradle wrapper --gradle-version 8.4
-          ./gradlew assembleDebug
+          # 6. Compilar directamente el APK
+          gradle assembleDebug
 
-      - name: Subir APK
+      - name: Subir instalador APK
         uses: actions/upload-artifact@v4
         with:
           name: FenixTV-Instalador
