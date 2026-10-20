@@ -9,14 +9,122 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar repositorio
+      - name: Descargar repo
         uses: actions/checkout@v4
 
-      - name: Configurar Java 17
+      - name: Instalar Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Gradle 8.4
-        uses: gradle
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Armar aplicacion FenixTV
+        run: |
+          mkdir -p app/src/main/java/com/fenixtv/app
+          mkdir -p app/src/main/res/drawable
+
+          IMG=$(find . -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) | head -n 1)
+          if [ -n "$IMG" ]; then
+            cp "$IMG" app/src/main/res/drawable/fenix_logo.png
+          fi
+
+          cat << 'EOF' > settings.gradle
+          include ':app'
+          EOF
+
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
+          }
+          EOF
+
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'com.fenixtv.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId 'com.fenixtv.app'
+                  minSdk 26
+                  targetSdk 34
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-feature android:name="android.software.leanback" android:required="false" />
+              <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application android:label="FenixTV" android:icon="@drawable/fenix_logo" android:banner="@drawable/fenix_logo" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+                  <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/fenixtv/app/MainActivity.java
+          package com.fenixtv.app;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.widget.*;
+          import android.view.Gravity;
+          import android.graphics.Color;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setBackgroundColor(Color.parseColor("#0A0A0C"));
+                  layout.setGravity(Gravity.CENTER);
+
+                  ImageView logo = new ImageView(this);
+                  int id = getResources().getIdentifier("fenix_logo", "drawable", getPackageName());
+                  if (id != 0) logo.setImageResource(id);
+                  logo.setLayoutParams(new LinearLayout.LayoutParams(500, 300));
+                  layout.addView(logo);
+
+                  TextView title = new TextView(this);
+                  title.setText("FENIXTV");
+                  title.setTextSize(32);
+                  title.setTextColor(Color.parseColor("#FF1A26"));
+                  title.setGravity(Gravity.CENTER);
+                  layout.addView(title);
+
+                  TextView plans = new TextView(this);
+                  plans.setText("Planes: Basico $15 / mes  |  Premium $20 / mes");
+                  plans.setTextSize(18);
+                  plans.setTextColor(Color.WHITE);
+                  plans.setGravity(Gravity.CENTER);
+                  plans.setPadding(0, 30, 0, 0);
+                  layout.addView(plans);
+
+                  setContentView(layout);
+              }
+          }
+          EOF
+
+          gradle wrapper --gradle-version 8.4
+          ./gradlew assembleDebug
+
+      - name: Subir APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FenixTV-Instalador
+          path: app/build/outputs/apk/debug/*.apk
